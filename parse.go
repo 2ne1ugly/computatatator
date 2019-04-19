@@ -14,113 +14,115 @@ package main
 
 import (
 	"log"
-	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
-//saves by terms
-type variable struct {
-	name string
-	exp  int
+//ParsePow : parses values with power
+func ParsePow(str string) float32 {
+	values := strings.Split(str, "^")
+	if len(values) > 2 {
+		log.Fatalln("cannot handle nested power")
+	}
+	base, err := strconv.ParseFloat(values[0], 32)
+	if err != nil {
+		log.Fatalln("not a float", values[0])
+	}
+	power, err := strconv.ParseInt(values[1], 10, 32)
+	if err != nil {
+		log.Fatalln("not a int", values[0])
+	}
+	return Pow(float32(base), int(power))
 }
 
-type term struct {
-	tokens []string
-	coef   float64
-	vars   []variable
+//ParseVar : parses variable with power
+func ParseVar(str string) (string, int) {
+	values := strings.Split(str, "^")
+	if len(values) > 2 {
+		log.Fatalln("cannot handle nested power")
+	}
+	power, err := strconv.ParseInt(values[1], 10, 32)
+	if err != nil {
+		log.Fatalln("not a int", values[0])
+	}
+	return values[0], int(power)
 }
 
-func splitByTerm(str string) []term {
-	eqTerms := regexp.MustCompile("\\*|\\+|\\-|=|X\\^[0-9]*|[0-9]*\\.?[0-9]*|[0-9]*|X")
-	tokens := eqTerms.FindAllString(str, -1)
-	isLHS := true
-	var lhs []term
-	lhs = append(lhs, term{})
-	lhs[len(lhs)-1].coef = 1
-	for _, token := range tokens {
-		if isLHS {
-			switch token {
-			case "+":
-				lhs = append(lhs, term{})
-				lhs[len(lhs)-1].coef = 1
-			case "-":
-				lhs = append(lhs, term{})
-				lhs[len(lhs)-1].coef = -1
-			case "=":
-				lhs = append(lhs, term{})
-				lhs[len(lhs)-1].coef = -1
-				isLHS = false
-			default:
-				lhs[len(lhs)-1].tokens = append(lhs[len(lhs)-1].tokens, token)
+//ParseFloat : parses Float
+func ParseFloat(str string) float32 {
+	value, err := strconv.ParseFloat(str, 32)
+	if err != nil {
+		log.Fatalln("not a float", str)
+	}
+	return float32(value)
+}
+
+func deleteToNatural(terms []Term) []Term {
+	var newTerms []Term
+	for _, term := range terms {
+		if term.coef != 0 {
+			for name, power := range term.vars {
+				if power == 0 {
+					delete(term.vars, name)
+				}
 			}
-		} else {
-			switch token {
-			case "+":
-				lhs = append(lhs, term{})
-				lhs[len(lhs)-1].coef = -1
-			case "-":
-				lhs = append(lhs, term{})
-				lhs[len(lhs)-1].coef = 1
-			case "=":
-				log.Fatalln("multiple =")
-			default:
-				lhs[len(lhs)-1].tokens = append(lhs[len(lhs)-1].tokens, token)
-			}
+			newTerms = append(newTerms, term)
 		}
-		println(token)
 	}
-	if isLHS {
-		log.Fatalln("not an equation")
-	}
-	return lhs
+	return newTerms
 }
 
-var isVar = regexp.MustCompile(`^[a-zA-Z]+$`).MatchString
-
-func evalTerm(term *term) {
-	if len(term.tokens) == 0 {
-		log.Fatalln("empty term")
-	}
-	expVal := true
-	isDiv := false
-	isPow := false
-	var prevOp byte
-	var err error
-	for _, v := range term.tokens {
-		if expVal {
-			if isVar(v) {
-				term.vars = append(term.vars, variable{})
-				term.vars[len(term.vars)-1].name = v
-				if isDiv {
-					term.vars[len(term.vars)-1].exp = -1
-				} else {
-					term.vars[len(term.vars)-1].exp = 1
+//ParseTerms : reads sub-tokens of term and translate to variables and coef.
+func ParseTerms(terms []Term) []Term {
+	for i := range terms {
+		opSplit := regexp.MustCompile("[\\*\\/]|[^\\*\\/]*")
+		subTokens := opSplit.FindAllString(terms[i].token, -1)
+		expVal := true
+		isDiv := false
+		terms[i].vars = make(map[string]int, 1)
+		for _, token := range subTokens {
+			if !expVal {
+				switch token {
+				case "/":
+					isDiv = true
+				case "*":
+					isDiv = false
+				default:
+					log.Fatalf("unexpected value %s from term %s", token, terms[i].token)
 				}
 			} else {
-				if isPow {
-
-				}
-				stash, err = strconv.ParseFloat(v, 64)
-				if err != nil {
-					log.Fatalln("failed parsing number:", v)
+				if token[0] == 'X' {
+					if strings.Contains(token, "^") {
+						variable, power := ParseVar(token)
+						if isDiv {
+							terms[i].vars[variable] -= power
+						} else {
+							terms[i].vars[variable] += power
+						}
+					} else {
+						if isDiv {
+							terms[i].vars["X"]--
+						} else {
+							terms[i].vars["X"]++
+						}
+					}
+				} else {
+					var value float32
+					if strings.Contains(token, "^") {
+						value = ParsePow(token)
+					} else {
+						value = ParseFloat(token)
+					}
+					if isDiv {
+						terms[i].coef /= value
+					} else {
+						terms[i].coef *= value
+					}
 				}
 			}
-		} else {
-			switch v {
-			case "*":
-				isDiv = false
-			case "/":
-				isDiv = true
-			}
-			expVal = true
+			expVal = !expVal
 		}
 	}
-}
-
-func main() {
-	if len(os.Args) != 2 {
-		println("need one equation!")
-	}
-	splitByTerm(os.Args[1])
+	return terms
 }
