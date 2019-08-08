@@ -6,13 +6,14 @@
 /*   By: mchi <mchi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/04/18 23:23:28 by mchi              #+#    #+#             */
-/*   Updated: 2019/04/18 23:23:28 by mchi             ###   ########.fr       */
+/*   Updated: 2019/08/07 22:13:09 by mchi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 )
@@ -40,10 +41,18 @@ func printEquation(lhs []Term) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		println("need one equation!")
+	var terms []Term
+	if len(os.Args) == 1 {
+		reader := bufio.NewReader(os.Stdin)
+		line, err := reader.ReadString('\n')
+		line = line[:len(line)-1]
+		if err != nil {
+			panic("error reading line")
+		}
+		terms = SplitByTerm(line)
+	} else {
+		terms = SplitByTerm(os.Args[1])
 	}
-	terms := SplitByTerm(os.Args[1])
 	terms = ParseTerms(terms)
 	terms = SimplifyTerm(terms)
 	fmt.Printf("Reduced form: ")

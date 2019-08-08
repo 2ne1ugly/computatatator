@@ -6,7 +6,7 @@
 /*   By: mchi <mchi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/04/17 15:45:55 by mchi              #+#    #+#             */
-/*   Updated: 2019/04/17 15:45:55 by mchi             ###   ########.fr       */
+/*   Updated: 2019/08/07 22:15:34 by mchi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,13 +25,20 @@ func ParsePow(str string) float32 {
 	if len(values) > 2 {
 		log.Fatalln("cannot handle nested power")
 	}
-	base, err := strconv.ParseFloat(values[0], 32)
+	var base float64
+	var power int64
+	var err error
+	base, err = strconv.ParseFloat(values[0], 32)
 	if err != nil {
 		log.Fatalln("not a float", values[0])
 	}
-	power, err := strconv.ParseInt(values[1], 10, 32)
-	if err != nil {
-		log.Fatalln("not a int", values[0])
+	if len(values) < 1 {
+		power, err = strconv.ParseInt(values[1], 10, 32)
+		if err != nil {
+			log.Fatalln("not a int", values[1])
+		}
+	} else {
+		power = 1
 	}
 	return Pow(float32(base), int(power))
 }
@@ -42,9 +49,15 @@ func ParseVar(str string) (string, int) {
 	if len(values) > 2 {
 		log.Fatalln("cannot handle nested power")
 	}
-	power, err := strconv.ParseInt(values[1], 10, 32)
-	if err != nil {
-		log.Fatalln("not a int", values[0])
+	var power int64
+	var err error
+	if len(values) == 2 {
+		power, err = strconv.ParseInt(values[1], 10, 32)
+		if err != nil {
+			log.Fatalln("not a int:", values[1])
+		}
+	} else {
+		power = 1
 	}
 	return values[0], int(power)
 }

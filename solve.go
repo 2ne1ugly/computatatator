@@ -6,7 +6,7 @@
 /*   By: mchi <mchi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/04/19 00:43:15 by mchi              #+#    #+#             */
-/*   Updated: 2019/04/19 00:43:15 by mchi             ###   ########.fr       */
+/*   Updated: 2019/08/07 22:19:39 by mchi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,7 @@ func SolveQuadratic(terms []Term) {
 	fmt.Printf("This is a Quadratic Equation.\n")
 	if disc < 0 {
 		fmt.Printf("Disc is negative. Two imaginary solution exists:\n")
-		fmt.Printf("%g + i * %g\n%g - i * %g\n", -b/(2*a), Sqrt(-disc)/(2*a), -b/(2*a), Sqrt(-disc)/(2*a))
+		fmt.Printf("%g + %gi\n%g - %gi\n", -b/(2*a), Sqrt(-disc)/(2*a), -b/(2*a), Sqrt(-disc)/(2*a))
 	} else if disc == 0 {
 		fmt.Printf("Disc is 0. Only single solution exists:\n%g\n", -b/2*a)
 	} else {
